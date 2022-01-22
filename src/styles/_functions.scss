@@ -1,0 +1,11 @@
+@function disabled-color($color) {
+  @return lighten(desaturate($color, 20%), 20%)
+}
+
+@function build-transitions($props, $duration: .05s, $easing: ease-in-out) {
+  $transitions: ();
+  @each $prop in $props {
+    $transitions: append($transitions, $prop $duration $easing, comma)
+  }
+  @return $transitions;
+}
