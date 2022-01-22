@@ -1,1 +1,26 @@
 $font-family: Avenir, Helvetica, Arial, sans-serif;
+
+$border-radius: 5px;
+
+$colors: (
+  "primary": (
+    "background": #476bd1,
+    "text": white,
+  ),
+  "secondary": (
+    "background": #787a87,
+    "text": black,
+  ),
+  "success": (
+    "background": #57b857,
+    "text": white,
+  ),
+  "danger": (
+    "background": #d9514c,
+    "text": white,
+  ),
+  "warning": (
+    "background": #edab43,
+    "text": white,
+  ),
+);

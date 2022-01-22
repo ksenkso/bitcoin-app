@@ -39,29 +39,7 @@ export default defineComponent({
 @use "sass:map";
 @import "~@/styles/_mixins.scss";
 @import "~@/styles/_functions.scss";
-
-$colors: (
-  "primary": (
-    "background": #476bd1,
-    "text": white,
-  ),
-  "secondary": (
-    "background": #787a87,
-    "text": black,
-  ),
-  "success": (
-    "background": #57b857,
-    "text": white,
-  ),
-  "danger": (
-    "background": #d9514c,
-    "text": white,
-  ),
-  "warning": (
-    "background": #edab43,
-    "text": white,
-  ),
-);
+@import "~@/styles/_variables.scss";
 
 @function button-shadow($color) {
   @return inset 0 0 3px 3px darken($color, 10%);
@@ -70,7 +48,7 @@ $colors: (
 .button {
   display: inline-block;
   border: 1px solid grey;
-  border-radius: 5px;
+  border-radius: $border-radius;
   cursor: pointer;
   padding: 6px 12px;
   background-color: #fff;
