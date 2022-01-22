@@ -1,7 +1,9 @@
 import { Ref, ref } from 'vue'
-import { log } from '@/utils'
+import { log } from '@/lib/logger'
+import { AnyFunction } from '@/types'
 
 export type WebSocketOptions = ConstructorParameters<typeof WebSocket>
+type WebSocketEvents = keyof WebSocketEventMap
 
 export type WebSocketHook = {
   ready: Ref<boolean>;
@@ -13,12 +15,18 @@ export type WebSocketHook = {
   onClose: (fn: (event: CloseEvent) => void) => void;
   onError: (fn: (event: Event) => void) => void;
   onMessage: (fn: (event: MessageEvent) => void) => void;
+  addEventListener<T extends WebSocketEvents = WebSocketEvents> (event: T, fn: (e: WebSocketEventMap[T]) => void): void;
+  removeEventListener<T extends WebSocketEvents = WebSocketEvents> (event: T, fn: (e: WebSocketEventMap[T]) => void): void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyFunction = (...args: any[]) => any
+export class RetryError extends Error {
+  constructor (maxRetries: number) {
+    super(`Maximum number of retries exceeded: ${maxRetries}`)
+  }
+}
 
 export function useWebSocket (...options: WebSocketOptions): WebSocketHook {
+  let retryCount = 0
   const ready = ref<boolean>(false)
   const listeners = new Map<keyof WebSocketEventMap, AnyFunction[]>([
     ['open', []],
@@ -27,7 +35,7 @@ export function useWebSocket (...options: WebSocketOptions): WebSocketHook {
     ['error', []],
   ])
 
-  const addEventListener = <T extends keyof WebSocketEventMap = keyof WebSocketEventMap> (event: T, fn: (event: WebSocketEventMap[T]) => void) => {
+  const addEventListener = <T extends WebSocketEvents = WebSocketEvents> (event: T, fn: (event: WebSocketEventMap[T]) => void) => {
     socket.addEventListener(event, fn)
     const eventListeners = listeners.get(event)
     if (eventListeners) {
@@ -35,7 +43,7 @@ export function useWebSocket (...options: WebSocketOptions): WebSocketHook {
     }
   }
 
-  const removeEventListener = <T extends keyof WebSocketEventMap = keyof WebSocketEventMap> (event: T, fn: (event: WebSocketEventMap[T]) => void) => {
+  const removeEventListener = <T extends WebSocketEvents = WebSocketEvents> (event: T, fn: (event: WebSocketEventMap[T]) => void) => {
     socket.removeEventListener(event, fn)
     const eventListeners = listeners.get(event)
     if (eventListeners) {
@@ -48,26 +56,17 @@ export function useWebSocket (...options: WebSocketOptions): WebSocketHook {
 
   let socket = new WebSocket(...options)
 
-  const reconnect = (): Promise<void> => {
+  const reconnect = (retries = 3): void => {
+    if (retryCount === retries) {
+      throw new RetryError(retries)
+    }
+
+    retryCount++
+
     socket = new WebSocket(...options)
     for (const [event, handlers] of listeners.entries()) {
       handlers.forEach((handler) => socket.addEventListener(event, handler))
     }
-
-    return new Promise((resolve, reject) => {
-      const ok = () => {
-        removeEventListener('open', ok)
-        resolve()
-      }
-      const error = (event: Event) => {
-        removeEventListener('error', error)
-
-        reject(event)
-      }
-
-      addEventListener('open', ok)
-      addEventListener('error', error)
-    })
   }
 
   const close = () => {
@@ -92,7 +91,11 @@ export function useWebSocket (...options: WebSocketOptions): WebSocketHook {
       ready.value = false
     }
 
-    log('error', 'socket', { socket, event, options })
+    log('error', 'socket', {
+      socket,
+      event,
+      options,
+    })
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,5 +128,7 @@ export function useWebSocket (...options: WebSocketOptions): WebSocketHook {
     onClose,
     onError,
     onMessage,
+    addEventListener,
+    removeEventListener,
   }
 }

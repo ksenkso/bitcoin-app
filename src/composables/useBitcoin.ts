@@ -1,4 +1,4 @@
-import { DeepReadonly, markRaw, Ref, ref } from 'vue'
+import { markRaw, Ref, ref } from 'vue'
 import { useWebSocket, WebSocketHook } from '@/composables/useWebSocket'
 
 export type BTCTransactionOut = {
@@ -48,23 +48,6 @@ export type UnconfirmedBTCTransaction = {
   value: number;
 }
 
-export type BitcoinApiOptions = {
-  url: string;
-}
-
-export type BitcoinApi = {
-  messages: Ref<DeepReadonly<UnconfirmedBTCTransaction[]>>;
-  ready: Ref<boolean>;
-  listening: Ref<boolean>;
-  start: () => void;
-  stop: () => void;
-  clear: () => void;
-  onOpen: (fn: (event: Event) => void) => void;
-  onClose: (fn: (event: CloseEvent) => void) => void;
-  onError: (fn: (event: Event) => void) => void;
-  onMessage: (fn: (event: MessageEvent) => void) => void;
-}
-
 function extractFields (event: MessageEvent<string>): UnconfirmedBTCTransaction {
   const data = JSON.parse(event.data) as BTCTransaction
 
@@ -86,6 +69,7 @@ function intToFloatValue (value: number) {
 export type UnconfirmedTransactionsHook = {
   messages: Ref<UnconfirmedBTCTransaction[]>;
   listening: Ref<boolean>;
+  error: Ref<Event | undefined>,
   start: () => void;
   stop: () => void;
   clear: () => void;
@@ -93,9 +77,10 @@ export type UnconfirmedTransactionsHook = {
 }
 
 export function useUnconfirmedTransactions (): UnconfirmedTransactionsHook {
-  const websocket = useWebSocket('wss://ws.blockchain.info/inv')
+  const websocket = useWebSocket('ws://localhost:9000')
 
   const messages = ref<UnconfirmedBTCTransaction[]>([])
+  const error = ref<Event>()
   const listening = ref<boolean>(false)
 
   const start = () => {
@@ -124,9 +109,14 @@ export function useUnconfirmedTransactions (): UnconfirmedTransactionsHook {
     messages.value.push(markRaw(extractFields(event)))
   })
 
+  websocket.onError((event: Event) => {
+    error.value = event
+  })
+
   return {
     messages,
     listening,
+    error,
     start,
     stop,
     clear,
