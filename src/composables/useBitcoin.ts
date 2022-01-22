@@ -77,7 +77,7 @@ export type UnconfirmedTransactionsHook = {
 }
 
 export function useUnconfirmedTransactions (): UnconfirmedTransactionsHook {
-  const websocket = useWebSocket('ws://localhost:9000')
+  const websocket = useWebSocket('wss://ws.blockchain.info/inv')
 
   const messages = ref<UnconfirmedBTCTransaction[]>([])
   const error = ref<Event>()
