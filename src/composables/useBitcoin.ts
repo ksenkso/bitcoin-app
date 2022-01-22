@@ -12,8 +12,31 @@ export type BTCTransactionOut = {
   script: string,
 }
 
-export type BTCTransaction = {
-  op: string,
+export type TransactionRow = {
+  hash: string;
+  from: string[];
+  to: string[];
+  value: number;
+}
+
+export type UnconfirmedTransactionsHook = {
+  messages: Ref<TransactionRow[]>;
+  listening: Ref<boolean>;
+  error: Ref<Event | undefined>,
+  start: () => void;
+  stop: () => void;
+  clear: () => void;
+  keepAlive: () => () => void;
+  websocket: WebSocketHook;
+}
+
+export interface BTCMessage {
+  op: string;
+  x: unknown;
+}
+
+export interface UnconfirmedTransaction extends BTCMessage {
+  op: 'utx';
   x: {
     // eslint-disable-next-line camelcase
     lock_time: number,
@@ -41,21 +64,14 @@ export type BTCTransaction = {
   }
 }
 
-export type UnconfirmedBTCTransaction = {
-  hash: string;
-  from: string[];
-  to: string[];
-  value: number;
-}
+const isUnconfirmedTransaction = (message: BTCMessage): message is UnconfirmedTransaction => message.x === 'utx'
 
-function extractFields (event: MessageEvent<string>): UnconfirmedBTCTransaction {
-  const data = JSON.parse(event.data) as BTCTransaction
-
+function extractFields (transaction: UnconfirmedTransaction): TransactionRow {
   return {
-    hash: data.x.hash,
-    from: data.x.inputs.map(input => input.prev_out.addr),
-    to: data.x.out.map(out => out.addr),
-    value: data.x.inputs.reduce((acc, input) => {
+    hash: transaction.x.hash,
+    from: transaction.x.inputs.map(input => input.prev_out.addr),
+    to: transaction.x.out.map(out => out.addr),
+    value: transaction.x.inputs.reduce((acc, input) => {
       return acc + intToFloatValue(input.prev_out.value)
     }, 0),
   }
@@ -66,22 +82,26 @@ function intToFloatValue (value: number) {
   return Number(`${str.substring(0, str.length - 8)}.${str.substring(str.length - 8)}`)
 }
 
-export type UnconfirmedTransactionsHook = {
-  messages: Ref<UnconfirmedBTCTransaction[]>;
-  listening: Ref<boolean>;
-  error: Ref<Event | undefined>,
-  start: () => void;
-  stop: () => void;
-  clear: () => void;
-  websocket: WebSocketHook;
-}
+const PING_INTERVAL = 3000
 
 export function useUnconfirmedTransactions (): UnconfirmedTransactionsHook {
   const websocket = useWebSocket('wss://ws.blockchain.info/inv')
 
-  const messages = ref<UnconfirmedBTCTransaction[]>([])
+  const messages = ref<TransactionRow[]>([])
   const error = ref<Event>()
   const listening = ref<boolean>(false)
+
+  const keepAlive = () => {
+    const interval = setInterval(() => {
+      websocket.send({
+        op: 'ping',
+      })
+    }, PING_INTERVAL)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }
 
   const start = () => {
     if (websocket.ready.value) {
@@ -106,7 +126,11 @@ export function useUnconfirmedTransactions (): UnconfirmedTransactionsHook {
   }
 
   websocket.onMessage((event: MessageEvent) => {
-    messages.value.push(markRaw(extractFields(event)))
+    const message = JSON.parse(event.data) as BTCMessage
+
+    if (isUnconfirmedTransaction(message)) {
+      messages.value.push(markRaw(extractFields(message)))
+    }
   })
 
   websocket.onError((event: Event) => {
@@ -120,6 +144,7 @@ export function useUnconfirmedTransactions (): UnconfirmedTransactionsHook {
     start,
     stop,
     clear,
+    keepAlive,
     websocket,
   }
 }

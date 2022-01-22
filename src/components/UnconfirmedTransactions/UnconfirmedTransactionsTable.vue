@@ -47,7 +47,7 @@
 <script lang="ts">
 import { defineComponent, PropType } from 'vue'
 import { btcToString } from '@/utils'
-import { UnconfirmedBTCTransaction } from '@/composables/useBitcoin'
+import { TransactionRow } from '@/composables/useBitcoin'
 import Link from '@/components/Link.vue'
 
 export default defineComponent({
@@ -55,7 +55,7 @@ export default defineComponent({
   components: { Link },
   props: {
     messages: {
-      type: Array as PropType<UnconfirmedBTCTransaction[]>,
+      type: Array as PropType<TransactionRow[]>,
       required: true,
     },
   },

@@ -1,6 +1,6 @@
 <template>
   <Container>
-    <div class="controls">
+    <div class="controls__container">
       <div
         v-if="!notAvailable && !ready"
         class="loading"
@@ -14,7 +14,10 @@
       >
         Не удалось подключиться
       </Alert>
-      <template v-if="ready">
+      <div
+        v-if="ready"
+        class="controls"
+      >
         <Button
           kind="success"
           size="xl"
@@ -39,7 +42,7 @@
         >
           Сброс
         </Button>
-      </template>
+      </div>
     </div>
     <div class="sum">
       Сумма: {{ btcToString(sum) }}
@@ -78,6 +81,7 @@ export default defineComponent({
       start,
       clear,
       stop,
+      keepAlive,
       websocket,
     } = useUnconfirmedTransactions()
 
@@ -98,6 +102,10 @@ export default defineComponent({
 
     const loaderMessage = computed(() => error.value ? 'Произошла ошибка, переподключение...' : 'Подключение')
     const notAvailable = ref(false)
+
+    websocket.onOpen(() => {
+      keepAlive()
+    })
 
     websocket.onClose(() => {
       try {
@@ -132,7 +140,10 @@ export default defineComponent({
   width: 100%;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 2rem;
+
+  &__container {
+    margin-bottom: 2rem;
+  }
 
   .button {
     min-width: 25%;
