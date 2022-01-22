@@ -1,30 +1,45 @@
 <template>
   <Container>
     <div class="controls">
-      <Button
-        kind="success"
-        size="xl"
-        :disabled="listening"
-        @click="start"
+      <div
+        v-if="!notAvailable && !ready"
+        class="loading"
       >
-        Запуск
-      </Button>
-      <Button
-        kind="danger"
-        size="xl"
-        :disabled="!listening"
-        @click="stop"
-      >
-        Остановка
-      </Button>
-      <Button
+        <Loader />
+        {{ loaderMessage }}
+      </div>
+      <Alert
+        v-if="notAvailable"
         kind="warning"
-        size="xl"
-        :disabled="!messages.length"
-        @click="clearMessages"
       >
-        Сброс
-      </Button>
+        Не удалось подключиться
+      </Alert>
+      <template v-if="ready">
+        <Button
+          kind="success"
+          size="xl"
+          :disabled="listening"
+          @click="start"
+        >
+          Запуск
+        </Button>
+        <Button
+          kind="danger"
+          size="xl"
+          :disabled="!listening"
+          @click="stop"
+        >
+          Остановка
+        </Button>
+        <Button
+          kind="warning"
+          size="xl"
+          :disabled="!messages.length"
+          @click="clearMessages"
+        >
+          Сброс
+        </Button>
+      </template>
     </div>
     <div class="sum">
       Сумма: {{ btcToString(sum) }}
@@ -36,16 +51,21 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { computed, defineComponent, ref } from 'vue'
 import { useUnconfirmedTransactions } from '@/composables/useBitcoin'
 import { btcToString } from '@/utils'
 import Button from '@/components/Button.vue'
 import UnconfirmedTransactionsTable from '@/components/UnconfirmedTransactions/UnconfirmedTransactionsTable.vue'
 import Container from '@/components/Container.vue'
+import Loader from '@/components/Loader.vue'
+import { RetryError } from '@/composables/useWebSocket'
+import Alert from '@/components/Alert.vue'
 
 export default defineComponent({
   name: 'UnconfirmedTransactions',
   components: {
+    Alert,
+    Loader,
     Container,
     UnconfirmedTransactionsTable,
     Button,
@@ -54,6 +74,7 @@ export default defineComponent({
     const {
       messages,
       listening,
+      error,
       start,
       clear,
       stop,
@@ -66,7 +87,7 @@ export default defineComponent({
     websocket.onMessage(() => {
       if (messages.value.length) {
         const lastMessage = messages.value[messages.value.length - 1]
-        sum.value += Number(lastMessage.value)
+        sum.value += lastMessage.value
       }
     })
 
@@ -75,13 +96,29 @@ export default defineComponent({
       sum.value = 0
     }
 
+    const loaderMessage = computed(() => error.value ? 'Произошла ошибка, переподключение...' : 'Подключение')
+    const notAvailable = ref(false)
+
+    websocket.onClose(() => {
+      try {
+        websocket.reconnect()
+      } catch (err) {
+        if (err instanceof RetryError) {
+          notAvailable.value = true
+        }
+      }
+    })
+
     return {
       messages,
       listening,
+      ready: websocket.ready,
+      loaderMessage,
       stop,
       start,
       clearMessages,
       sum,
+      notAvailable,
       btcToString,
     }
   },
@@ -95,7 +132,7 @@ export default defineComponent({
   width: 100%;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
 
   .button {
     min-width: 25%;
@@ -113,7 +150,6 @@ export default defineComponent({
   text-align: center;
   font-weight: bold;
   font-size: 1.5rem;
-  margin-top: 2rem;
   margin-bottom: 1rem;
 }
 
@@ -126,5 +162,18 @@ export default defineComponent({
 .table-container {
   overflow: auto;
   flex: 1;
+}
+
+.loader {
+  width: 42px;
+  height: 42px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  column-gap: 1rem;
+  justify-content: center;
+  width: 100%;
 }
 </style>
