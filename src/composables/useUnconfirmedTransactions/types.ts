@@ -20,12 +20,10 @@ export type TransactionRow = {
 }
 
 export type UnconfirmedTransactionsHook = {
-  messages: Ref<TransactionRow[]>;
   listening: Ref<boolean>;
   error: Ref<Event | undefined>,
   start: () => void;
   stop: () => void;
-  clear: () => void;
   keepAlive: () => () => void;
   websocket: WebSocketHook;
 }
@@ -63,3 +61,5 @@ export interface UnconfirmedTransaction extends BTCMessage {
     out: BTCTransactionOut[]
   }
 }
+
+export type TransactionHandler = (transaction: UnconfirmedTransaction) => void

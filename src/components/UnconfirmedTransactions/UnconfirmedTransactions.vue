@@ -37,8 +37,8 @@
         <Button
           kind="warning"
           size="xl"
-          :disabled="!messages.length"
-          @click="clearMessages"
+          :disabled="!transactions.length"
+          @click="clear"
         >
           Сброс
         </Button>
@@ -48,7 +48,7 @@
       Сумма: {{ btcToString(sum) }}
     </div>
     <div class="table-container">
-      <UnconfirmedTransactionsTable :messages="messages" />
+      <UnconfirmedTransactionsTable :transactions="transactions" />
     </div>
   </Container>
 </template>
@@ -56,13 +56,14 @@
 <script lang="ts">
 import { computed, defineComponent, ref } from 'vue'
 import { useUnconfirmedTransactions } from '@/composables/useUnconfirmedTransactions/useUnconfirmedTransactions'
-import { btcToString } from '@/utils'
+import { btcToString, intToFloatValue } from '@/utils'
 import Button from '@/components/Button.vue'
 import UnconfirmedTransactionsTable from '@/components/UnconfirmedTransactions/UnconfirmedTransactionsTable.vue'
 import Container from '@/components/Container.vue'
 import Loader from '@/components/Loader.vue'
 import Alert from '@/components/Alert.vue'
 import { RetryError } from '@/composables/useWebSocket/RetryError'
+import { TransactionRow, UnconfirmedTransaction } from '@/composables/useUnconfirmedTransactions/types'
 
 export default defineComponent({
   name: 'UnconfirmedTransactions',
@@ -75,29 +76,37 @@ export default defineComponent({
   },
   setup () {
     const {
-      messages,
       listening,
       error,
       start,
-      clear,
       stop,
       keepAlive,
       websocket,
-    } = useUnconfirmedTransactions()
+    } = useUnconfirmedTransactions(addTransaction)
 
-    // оптимизация, чтобы не ходить по всему массиву на каждое сообщение
+    const transactions = ref<TransactionRow[]>([])
     const sum = ref(0)
 
-    websocket.onMessage(() => {
-      if (messages.value.length) {
-        const lastMessage = messages.value[messages.value.length - 1]
-        sum.value += lastMessage.value
-      }
-    })
+    function addTransaction (transaction: UnconfirmedTransaction): void {
+      const row = extractFields(transaction)
+      transactions.value.push(row)
+      sum.value += row.value
+    }
 
-    const clearMessages = () => {
-      clear()
+    const clear = () => {
+      transactions.value = []
       sum.value = 0
+    }
+
+    function extractFields (transaction: UnconfirmedTransaction): TransactionRow {
+      return {
+        hash: transaction.x.hash,
+        from: transaction.x.inputs.map(input => input.prev_out.addr),
+        to: transaction.x.out.map(out => out.addr),
+        value: transaction.x.inputs.reduce((acc, input) => {
+          return acc + intToFloatValue(input.prev_out.value)
+        }, 0),
+      }
     }
 
     const loaderMessage = computed(() => error.value ? 'Произошла ошибка, переподключение...' : 'Подключение')
@@ -118,13 +127,13 @@ export default defineComponent({
     })
 
     return {
-      messages,
+      transactions,
       listening,
       ready: websocket.ready,
       loaderMessage,
       stop,
       start,
-      clearMessages,
+      clear,
       sum,
       notAvailable,
       btcToString,

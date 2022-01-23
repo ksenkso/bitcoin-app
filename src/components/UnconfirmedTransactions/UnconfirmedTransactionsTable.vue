@@ -15,7 +15,7 @@
     </thead>
     <tbody>
       <tr
-        v-for="message in messages"
+        v-for="message in transactions"
         :key="message.hash"
       >
         <td>
@@ -54,7 +54,7 @@ export default defineComponent({
   name: 'UnconfirmedTransactionsTable',
   components: { Link },
   props: {
-    messages: {
+    transactions: {
       type: Array as PropType<TransactionRow[]>,
       required: true,
     },
