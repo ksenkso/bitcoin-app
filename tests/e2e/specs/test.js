@@ -29,4 +29,18 @@ describe('Тест управления сокетами', () => {
       cy.get('.sum').should('have.text', sum)
     })
   })
+
+  it('новые строки должны добавляться после того, как прослушивание было возобновлено', () => {
+    cy.contains('Запуск').click()
+    cy.wait(WAIT_BEFORE_STOP)
+
+    cy.get('table').find('tr').then(rows => {
+      const count = Cypress.$(rows).length
+      cy.contains('Остановка').click()
+      cy.wait(WAIT_AFTER_STOP)
+      cy.contains('Запуск').click()
+      cy.wait(WAIT_BEFORE_STOP)
+      cy.get('tr').its('length').should('be.gt', count)
+    })
+  })
 })
