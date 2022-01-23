@@ -1,68 +1,11 @@
-import { markRaw, Ref, ref } from 'vue'
-import { useWebSocket, WebSocketHook } from '@/composables/useWebSocket'
-
-export type BTCTransactionOut = {
-  spent: boolean,
-  // eslint-disable-next-line camelcase
-  tx_index: number,
-  type: number,
-  addr: string,
-  value: number,
-  n: number,
-  script: string,
-}
-
-export type TransactionRow = {
-  hash: string;
-  from: string[];
-  to: string[];
-  value: number;
-}
-
-export type UnconfirmedTransactionsHook = {
-  messages: Ref<TransactionRow[]>;
-  listening: Ref<boolean>;
-  error: Ref<Event | undefined>,
-  start: () => void;
-  stop: () => void;
-  clear: () => void;
-  keepAlive: () => () => void;
-  websocket: WebSocketHook;
-}
-
-export interface BTCMessage {
-  op: string;
-  x: unknown;
-}
-
-export interface UnconfirmedTransaction extends BTCMessage {
-  op: 'utx';
-  x: {
-    // eslint-disable-next-line camelcase
-    lock_time: number,
-    ver: number,
-    size: number,
-    inputs: [
-      {
-        sequence: number,
-        // eslint-disable-next-line camelcase
-        prev_out: BTCTransactionOut,
-        script: string,
-      }
-    ],
-    time: number,
-    // eslint-disable-next-line camelcase
-    tx_index: number,
-    // eslint-disable-next-line camelcase
-    vin_sz: number,
-    hash: string,
-    // eslint-disable-next-line camelcase
-    vout_sz: number,
-    // eslint-disable-next-line camelcase
-    relayed_by: string,
-    out: BTCTransactionOut[]
-  }
-}
+import { markRaw, ref } from 'vue'
+import { useWebSocket } from '@/composables/useWebSocket/useWebSocket'
+import {
+  BTCMessage,
+  TransactionRow,
+  UnconfirmedTransaction,
+  UnconfirmedTransactionsHook,
+} from '@/composables/useUnconfirmedTransactions/types'
 
 const isUnconfirmedTransaction = (message: BTCMessage): message is UnconfirmedTransaction => message.x === 'utx'
 

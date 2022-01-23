@@ -55,14 +55,14 @@
 
 <script lang="ts">
 import { computed, defineComponent, ref } from 'vue'
-import { useUnconfirmedTransactions } from '@/composables/useBitcoin'
+import { useUnconfirmedTransactions } from '@/composables/useUnconfirmedTransactions/useUnconfirmedTransactions'
 import { btcToString } from '@/utils'
 import Button from '@/components/Button.vue'
 import UnconfirmedTransactionsTable from '@/components/UnconfirmedTransactions/UnconfirmedTransactionsTable.vue'
 import Container from '@/components/Container.vue'
 import Loader from '@/components/Loader.vue'
-import { RetryError } from '@/composables/useWebSocket'
 import Alert from '@/components/Alert.vue'
+import { RetryError } from '@/composables/useWebSocket/RetryError'
 
 export default defineComponent({
   name: 'UnconfirmedTransactions',

@@ -47,8 +47,8 @@
 <script lang="ts">
 import { defineComponent, PropType } from 'vue'
 import { btcToString } from '@/utils'
-import { TransactionRow } from '@/composables/useBitcoin'
 import Link from '@/components/Link.vue'
+import { TransactionRow } from '@/composables/useUnconfirmedTransactions/types'
 
 export default defineComponent({
   name: 'UnconfirmedTransactionsTable',

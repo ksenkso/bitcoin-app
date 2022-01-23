@@ -1,29 +1,8 @@
-import { Ref, ref } from 'vue'
+import { ref } from 'vue'
 import { log } from '@/lib/logger'
 import { AnyFunction } from '@/types'
-
-export type WebSocketOptions = ConstructorParameters<typeof WebSocket>
-type WebSocketEvents = keyof WebSocketEventMap
-
-export type WebSocketHook = {
-  ready: Ref<boolean>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  send: (data: any) => void;
-  close: () => void;
-  reconnect: () => void;
-  onOpen: (fn: (event: Event) => void) => void;
-  onClose: (fn: (event: CloseEvent) => void) => void;
-  onError: (fn: (event: Event) => void) => void;
-  onMessage: (fn: (event: MessageEvent) => void) => void;
-  addEventListener<T extends WebSocketEvents = WebSocketEvents> (event: T, fn: (e: WebSocketEventMap[T]) => void): void;
-  removeEventListener<T extends WebSocketEvents = WebSocketEvents> (event: T, fn: (e: WebSocketEventMap[T]) => void): void;
-}
-
-export class RetryError extends Error {
-  constructor (maxRetries: number) {
-    super(`Maximum number of retries exceeded: ${maxRetries}`)
-  }
-}
+import { RetryError } from '@/composables/useWebSocket/RetryError'
+import { WebSocketEvents, WebSocketHook, WebSocketOptions } from '@/composables/useWebSocket/types'
 
 export function useWebSocket (...options: WebSocketOptions): WebSocketHook {
   let retryCount = 0
