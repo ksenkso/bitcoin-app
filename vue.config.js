@@ -5,4 +5,7 @@ module.exports = {
       title: 'BitcoinApp',
     },
   },
+  publicPath: process.env.NODE_ENV === 'production'
+    ? '/bitcoin-app/'
+    : '/',
 }
